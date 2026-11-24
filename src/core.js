@@ -11,7 +11,7 @@ import { walkProgram, resolve, memberChain, isFunction } from './scope.js';
 import { validateConfig, cleanColor, colorShape, decimalsOf, KEY_RE, SPEC_VERSION } from './validate.js';
 
 export { SPEC_VERSION };
-export const TOOL_VERSION = '0.1.0';
+export const TOOL_VERSION = '0.1.1';
 
 /* ------------------------------------------------------------
  * 読み取り
@@ -234,17 +234,72 @@ const prepare = source => {
         }
     }
 
+    // 読み込みのときにだけ呼ばれる関数を探す。
+    // 冒頭で名前を付けた関数のうち、使い方が「その場で呼ぶ」だけで（フックに渡す・ほかへ入れる、が無い）、
+    // 呼ぶ所がどれも読み込みの流れの中（冒頭の直下か、同じく読み込みのときにだけ呼ばれる関数の中）にあるもの。
+    // その中で読んだ設定も、読み込みのときに 1 回だけ読まれる（例: let type = loadType(); の loadType の中）。
+    /** そのノードを囲む、いちばん内側の「あとで呼ばれる関数」（無ければ null） */
+    const boundaryOf = node => {
+        for (let cur = node._p; cur; cur = cur._p) {
+            if (isFunction(cur) && cur._immediate !== true) return cur;
+        }
+        return null;
+    };
+    const namedFns = new Map();   // 関数のノード → 名前
+    for (const stmt of rootBody) {
+        if (stmt.type === 'FunctionDeclaration' && stmt.id) {
+            namedFns.set(stmt, stmt.id.name);
+        } else if (stmt.type === 'VariableDeclaration') {
+            for (const d of stmt.declarations) {
+                if (d.id.type === 'Identifier' && isFunction(d.init)) namedFns.set(d.init, d.id.name);
+            }
+        }
+    }
+    const loadOnly = new Set();   // 関数のノード
+    for (let grew = true; grew;) {
+        grew = false;
+        for (const [fn, name] of namedFns) {
+            if (loadOnly.has(fn)) continue;
+            const uses = rootRefs.get(name) ?? [];
+            const ok = uses.length > 0 && uses.every(ref => {
+                const p = ref.node._p;
+                if (p?.type !== 'CallExpression' || p.callee !== ref.node) return false;
+                const b = boundaryOf(ref.node);
+                return b === null || loadOnly.has(b);
+            });
+            if (ok) {
+                loadOnly.add(fn);
+                grew = true;
+            }
+        }
+    }
+    /** その参照が、読み込みのときにだけ呼ばれる関数の中（直下）にあれば、その関数の名前。無ければ null */
+    const loadFnOf = ref => {
+        if (ref.depth === 0) return null;
+        const b = boundaryOf(ref.node);
+        return b !== null && loadOnly.has(b) ? namedFns.get(b) : null;
+    };
+
     // 候補ごとに、使われ方を調べる
     const startsWith = (long, short) => short.every((k, i) => long[i] === k);
     for (const c of cands) {
         c.mutated = false;
         c.loadReads = [];   // 読み込みのときに 1 回だけ読む所
+        c.loadCalls = [];   // 読み込みのときにだけ呼ばれる関数の中で読む所 { ref, fn }
+        const note = ref => {
+            if (ref.depth === 0) {
+                c.loadReads.push(ref);
+                return;
+            }
+            const fn = loadFnOf(ref);
+            if (fn !== null) c.loadCalls.push({ ref, fn });
+        };
         if (c.kind === 'const') {
             c.refs = rootRefs.get(c.name) ?? [];
             for (const ref of c.refs) {
                 const ch = memberChain(ref);
                 if (ch.path.length === 0 && !ch.dynamic && ch.write) c.mutated = true;
-                if (ref.depth === 0) c.loadReads.push(ref);
+                note(ref);
             }
         } else {
             c.refs = [];
@@ -253,12 +308,12 @@ const prepare = source => {
                 if (startsWith(ch.path, c.path)) {
                     c.refs.push(ref);
                     if (ch.path.length === c.path.length && !ch.dynamic && ch.write) c.mutated = true;
-                    if (ref.depth === 0) c.loadReads.push(ref);
-                } else if (ref.depth === 0 && !ch.dynamic && startsWith(c.path, ch.path)) {
+                    note(ref);
+                } else if (!ch.dynamic && startsWith(c.path, ch.path)) {
                     // オブジェクトごと、読み込みのときに中身を取り出している（分割代入・スプレッド）
                     const p = ch.top._p;
                     if ((p?.type === 'VariableDeclarator' && p.init === ch.top && p.id.type === 'ObjectPattern') || p?.type === 'SpreadElement') {
-                        c.loadReads.push(ref);
+                        note(ref);
                     }
                 }
             }
@@ -267,7 +322,7 @@ const prepare = source => {
 
     return {
         bom, text, ast, comments, style, rootFn, rootContainer, rootBody, rootRefs, refs, idents, cands, eol, indentUnit,
-        lineStart, lineEnd, indentOf, startsLine, leadingComments, trailingComment,
+        lineStart, lineEnd, indentOf, startsLine, leadingComments, trailingComment, loadFnOf,
     };
 };
 
@@ -344,7 +399,9 @@ export const analyze = (source, opts = {}) => {
         const shape = c.valueType === 'color' ? colorShape(c.value) : null;
         return {
             id: c.id, kind: c.kind, name: c.name, valueType: c.valueType, value: c.value, line: c.line,
-            comment: label, mutated: c.mutated, loadReadLines: [...new Set(c.loadReads.map(r => r.node.loc.start.line))],
+            comment: label, mutated: c.mutated,
+            // 読み込みのときに 1 回だけ読む所（読み込みのときにだけ呼ばれる関数の中で読む所も入れる）
+            loadReadLines: [...new Set([...c.loadReads, ...c.loadCalls.map(x => x.ref)].map(r => r.node.loc.start.line))].sort((x, y) => x - y),
             suggest: {
                 key,
                 type: { boolean: 'toggle', number: 'number', color: 'color', string: 'select' }[c.valueType],
@@ -518,16 +575,25 @@ export const convert = (source, config) => {
         const via = constNames.has(from) ? '' : `（${[...constNames].join('・')} から計算した値）`;
         warn(lineOf(ref.node), `「${from}」${via}を、読み込みのときに 1 回だけ読んでいます。ランチャーで変えた値が、ここには届きません。値を使う関数の中で読むように直してください。`);
     }
+    /** 読み込みのときにだけ呼ばれる関数の中で読んでいる所の注意 */
+    const warnLoadCall = (ref, fn, what) => warn(lineOf(ref.node),
+        `${what}を、読み込みのときにだけ呼ばれる関数 ${fn}() の中で読んでいます。ランチャーが後から読み込まれると、変えた値がここには届きません。`
+        + `値を使うたびに呼ばれる所で読むように直してください。`);
     for (const [name, d] of lazy) {
         edits.push({ start: d.init.start, end: d.init.start, text: '() => (' });
         edits.push({ start: d.init.end, end: d.init.end, text: ')' });
-        (rootRefs.get(name) ?? []).forEach(ref => replaceRef(ref, `${name}()`));
+        (rootRefs.get(name) ?? []).forEach(ref => {
+            replaceRef(ref, `${name}()`);
+            const fn = ctx.loadFnOf(ref);
+            if (fn !== null) warnLoadCall(ref, fn, `「${name}」（${[...constNames].join('・')} から計算した値）`);
+        });
     }
     for (const { c } of chosen) {
         if (c.kind === 'prop') {
             c.loadReads.forEach(ref => warn(lineOf(ref.node),
                 `「${c.name}」を、読み込みのときに 1 回だけ読んでいます。ランチャーで変えた値が、ここには届きません。値を使う関数の中で読むように直してください。`));
         }
+        c.loadCalls.forEach(({ ref, fn }) => warnLoadCall(ref, fn, `「${c.name}」`));
     }
 
     // 3. 定数の宣言を外す（上と横の注釈は、宣言の設定の行の上へ移す）

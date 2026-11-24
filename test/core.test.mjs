@@ -177,6 +177,49 @@ test('構文エラーのファイルと、対応済みのファイル', () => {
     assert.match(convert(done.output, { id: 'sample', settings: [] }).errors[0].text, /すでに/);
 });
 
+const LOAD_FN = `(() => {
+    const C = { mode: \`a\`, size: 3 };
+    const GAP = 2;
+    const WIDE = GAP * 10;
+    const loadMode = () => {
+        const inner = [1].map(() => C.mode);
+        return inner[0] + GAP + WIDE;
+    };
+    function setup() { return loadMode(); }
+    let mode = setup();
+    const draw = () => C.size + GAP;
+    const both = () => C.size;
+    both();
+    window.hooks = [draw, () => both()];
+    window.mode = () => mode;
+})();
+`;
+
+test('読み込みのときにだけ呼ばれる関数の中で読む設定は、注意に出る', () => {
+    const lineOf = text => LOAD_FN.split('\n').findIndex(l => l.includes(text)) + 1;
+    const a = analyze(LOAD_FN);
+    const cand = name => a.candidates.find(c => c.name === name);
+    // loadMode は setup からだけ、setup は読み込みのときにだけ呼ばれる（その場で呼ばれる map の中も同じ扱い）
+    assert.deepEqual(cand('C.mode').loadReadLines, [lineOf('C.mode);')]);
+    assert.deepEqual(cand('GAP').loadReadLines, [lineOf('const WIDE'), lineOf('inner[0] + GAP')]);
+    // フックに渡す関数（draw）・あとからも呼ぶ関数（both）の中は、何度も読まれるので出さない
+    assert.deepEqual(cand('C.size').loadReadLines, []);
+
+    const settings = pickSettings(LOAD_FN, ['C.mode', 'C.size', 'GAP'], {
+        'C.mode': { options: [{ value: 'a' }, { value: 'b' }] },
+    });
+    const r = convert(LOAD_FN, { id: 'load-fn', settings });
+    assert.equal(r.ok, true, JSON.stringify(r.errors));
+    const warns = r.warnings.filter(x => x.text.includes('読み込みのときにだけ呼ばれる関数'));
+    assert.deepEqual(warns.map(x => x.line), [lineOf('C.mode);'), lineOf('inner[0] + GAP'), lineOf('inner[0] + GAP')]);
+    assert.equal(warns.every(x => x.text.includes('loadMode()')), true);
+    assert.equal(warns.some(x => x.text.includes('「C.mode」')), true);
+    assert.equal(warns.some(x => x.text.includes('「GAP」')), true);
+    assert.equal(warns.some(x => x.text.includes('「WIDE」')), true);   // 設定から計算した定数も
+    // 書き換えたあとも、既定の値なら元と同じ結果
+    assert.equal(run(r.output).mode(), run(LOAD_FN).mode());
+});
+
 // 実物のカスタムjs（手元にあるときだけ）。下書きのまま全部選んで、正しい js になること
 const REAL = [
     'lifegauge_pos/danoni_lifegauge_pos.js', 'judgdist/danoni_judgdist.js', 'danoni/js/danoni_touch_slide.js',
