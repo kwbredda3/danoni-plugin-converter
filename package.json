@@ -1,0 +1,11 @@
+{
+  "name": "danoni-plugin-convert",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dancing☆Onigiri (CW Edition) の既存のカスタムjsを、ランチャーの規格に合わせて書き換える道具",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/core.test.mjs",
+    "check-page": "node test/make_check_page.mjs"
+  }
+}

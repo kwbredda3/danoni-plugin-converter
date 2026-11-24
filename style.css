@@ -1,0 +1,126 @@
+:root {
+    color-scheme: light dark;
+    --bg: #f5f6f9;
+    --panel: #ffffff;
+    --line: #d5d9e3;
+    --text: #1d2330;
+    --muted: #5d6677;
+    --accent: #1f6fd6;
+    --accent-text: #ffffff;
+    --add: #dff5e3;
+    --del: #fde3e3;
+    --warn: #8a5a00;
+    --warn-bg: #fff4d6;
+    --err: #b3261e;
+    --err-bg: #fde7e5;
+    --code-bg: #f0f2f6;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "BIZ UDGothic", monospace;
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0f131b;
+        --panel: #171c27;
+        --line: #2c3446;
+        --text: #dfe5f1;
+        --muted: #97a1b5;
+        --accent: #58aef5;
+        --accent-text: #0b1420;
+        --add: #173a25;
+        --del: #47201f;
+        --warn: #f2c66d;
+        --warn-bg: #3a2f12;
+        --err: #ff9c94;
+        --err-bg: #44201d;
+        --code-bg: #10141d;
+    }
+}
+* { box-sizing: border-box; }
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.7 "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Yu Gothic Medium", Meiryo, sans-serif;
+}
+header, main, footer { width: min(94%, 980px); margin: 0 auto; }
+header { padding: 28px 0 8px; }
+h1 { margin: 0 0 8px; font-size: 22px; }
+header p { margin: 4px 0; }
+.sub, .muted, small { color: var(--muted); }
+small { display: block; font-size: 12px; line-height: 1.5; }
+a { color: var(--accent); }
+section {
+    margin: 16px 0;
+    padding: 16px 18px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+}
+h2 { margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+.num {
+    display: inline-grid; place-items: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-text); font-size: 13px;
+}
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-bottom: 10px; }
+.spacer { flex: 1; }
+.btn {
+    display: inline-block; padding: 5px 16px; border: 1px solid var(--accent); border-radius: 16px;
+    background: var(--accent); color: var(--accent-text); font: inherit; cursor: pointer;
+}
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, [role="tab"]:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+}
+textarea, input[type="text"], input[type="number"], select {
+    width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--code-bg); color: var(--text); font: inherit;
+}
+#source, .code { font: 13px/1.55 var(--mono); tab-size: 4; }
+#source { height: 220px; resize: vertical; white-space: pre; }
+#source.drop { outline: 2px dashed var(--accent); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; margin-bottom: 10px; }
+.grid .wide { grid-column: 1 / -1; }
+@media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+label { display: block; font-size: 13px; color: var(--muted); }
+label input, label select, label textarea { margin-top: 2px; color: var(--text); }
+label.check { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; color: var(--text); font-size: 14px; }
+label.check small { display: inline; }
+label.check input { margin: 0; }
+
+.cand { border-top: 1px solid var(--line); padding: 8px 0; }
+.cand:first-child { border-top: 0; }
+.cand-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; cursor: pointer; }
+.cand-head input { margin: 0; align-self: center; }
+.cand-name { font: 14px var(--mono); font-weight: 600; }
+.cand-value { font: 13px var(--mono); color: var(--muted); max-width: 22em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.swatch { display: inline-block; width: 12px; height: 12px; border: 1px solid var(--line); border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+.cand-comment { color: var(--muted); font-size: 13px; }
+.tag { font-size: 12px; padding: 0 8px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); }
+.cand-form { margin: 8px 0 4px 24px; padding: 10px 12px; border-left: 3px solid var(--accent); background: var(--code-bg); border-radius: 0 6px 6px 0; }
+.cand-form .grid { grid-template-columns: repeat(4, 1fr); margin-bottom: 0; }
+.cand-form .grid .half { grid-column: span 2; }
+.cand-form input, .cand-form select, .cand-form textarea { background: var(--panel); }
+.cand-form textarea { font: 13px/1.5 var(--mono); height: 84px; resize: vertical; }
+@media (max-width: 640px) { .cand-form .grid { grid-template-columns: 1fr 1fr; } }
+.cand-error { margin: 6px 0 0 24px; }
+
+.notes { list-style: none; margin: 0; padding: 0; }
+.notes li { margin: 6px 0; padding: 6px 10px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); font-size: 14px; }
+.notes li.info { background: var(--code-bg); color: var(--text); }
+.notes li.err, .error { background: var(--err-bg); color: var(--err); }
+.error { padding: 6px 10px; border-radius: 6px; font-size: 14px; margin: 8px 0 0; }
+.notes .line { font: 12px var(--mono); margin-right: 8px; opacity: 0.85; }
+
+.tabs { display: inline-flex; border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+[role="tab"] { border: 0; padding: 4px 16px; background: transparent; color: var(--text); font: inherit; cursor: pointer; }
+[role="tab"][aria-selected="true"] { background: var(--accent); color: var(--accent-text); }
+.code { border: 1px solid var(--line); border-radius: 6px; background: var(--code-bg); }
+#diff { max-height: 560px; overflow: auto; }
+#output { height: 560px; white-space: pre; resize: vertical; }
+.dl { display: grid; grid-template-columns: 3.2em 3.2em 1fr; min-width: max-content; }
+.dl span { padding: 0 6px; white-space: pre; }
+.dl .ln { color: var(--muted); text-align: right; user-select: none; }
+.dl.add { background: var(--add); }
+.dl.del { background: var(--del); }
+.dl.skip { color: var(--muted); padding: 2px 8px; display: block; border-block: 1px dashed var(--line); font-family: inherit; font-size: 12px; }
+footer { padding: 4px 0 40px; color: var(--muted); font-size: 13px; }
