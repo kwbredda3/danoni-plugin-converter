@@ -54,7 +54,7 @@ Dancing☆Onigiri (CW Edition) の既存のカスタムjsを、ランチャー�
 
 ### ブラウザ
 
-公開ページ（https://kwbredda3.github.io/danoni-plugin-converter/）を開きます。手元に置いたものは、`index.html` を http で開きます（`file://` では、部品を読み込めません）。貼った js はページの中だけで処理し、どこにも送りません。
+[公開ページ](https://kwbredda3.github.io/danoni-plugin-converter/) を開きます。手元に置いたものは、`index.html` を http で開きます（`file://` では、部品を読み込めません）。貼った js はページの中だけで処理し、どこにも送りません。
 
 手元で試すときは、このフォルダで `python -m http.server 8000` を動かして、http://localhost:8000/ を開きます。
 
