@@ -54,7 +54,7 @@ Dancing☆Onigiri (CW Edition) の既存のカスタムjsを、ランチャー�
 
 ### ブラウザ
 
-`index.html` を、http で開きます（`file://` では、部品を読み込めません）。貼った js はページの中だけで処理し、どこにも送りません。
+公開ページ（https://kwbredda3.github.io/danoni-plugin-converter/）を開きます。手元に置いたものは、`index.html` を http で開きます（`file://` では、部品を読み込めません）。貼った js はページの中だけで処理し、どこにも送りません。
 
 手元で試すときは、このフォルダで `python -m http.server 8000` を動かして、http://localhost:8000/ を開きます。
 
@@ -93,6 +93,7 @@ node cli.mjs convert <元の js> --auto --id <id> -o <出力>  # 候補を下書
   - 旧式のファイル・名前がぶつかるとき・決まりに合わない指定・ASCII だけの形
   - 手元の実物 8 本（ライフゲージの位置・判定分布グラフ・なぞり判定・17key レーン背景色・tap.js など）を、
     下書きのまま全部選んで書き換え、正しい js になること
+- 公開ページ（2026-11-25・Chromium）: 部品 9 つとも読み込めて、見本の書き換えまで通る。エラーなし。
 - 画面（Chromium）: 見本を入れる → 4 つの候補を選ぶ → 選択肢を入れる → 差分と全文が出る。エラーなし。
 - 実物のランチャー 1.0.0・本体 53.0.0（`npm run check-page` のページ）:
   - 書き換えた 2 本（画面の見本・17key レーン背景色）が一覧に並ぶ。4 つの型とも、欄が出る
@@ -104,21 +105,15 @@ node cli.mjs convert <元の js> --auto --id <id> -o <出力>  # 候補を下書
 - 実物 8 本の、書き換えたあとの動き（正しい js になる所まで。動きは、画面の見本の 1 本だけ）。
 - 画面のファイルのドロップ・Shift_JIS のファイル・保存のボタン・コピーのボタン。
 - Firefox・Safari・スマートフォンの幅。
-- GitHub Pages に置いた形。
 
 ## 公開（GitHub Pages）
 
-持ち主の GitHub に公開ページを作る予定です（2026-11-24）。このフォルダの中身を、そのままリポジトリの直下に置けば動きます。
+- 公開ページ: https://kwbredda3.github.io/danoni-plugin-converter/
+- リポジトリ: https://github.com/kwbredda3/danoni-plugin-converter
+
+`main` に push すると、数分で公開ページに反映されます（Settings → Pages で、`main` の `/ (root)` を出す設定）。
+組み立ては無いので、リポジトリの中身がそのまま公開ページになります。
 
 - `test/check/` は手元用の書き出しなので、置きません（`.gitignore` に入れてあります）。
-- ライセンスは MIT（`LICENSE`。名義は拡張機能と同じ apoi）。同梱の acorn も MIT です（`vendor/acorn.LICENSE`）。
+- ライセンスは MIT（`LICENSE`）。同梱の acorn も MIT です（`vendor/acorn.LICENSE`）。
 - 画面の文は日本語だけです。
-
-手順（git は初期化済み・ブランチは `main`。コミットはまだ）:
-
-1. GitHub で、空のリポジトリを作る（README・ライセンスは足さない）。
-2. コミットの名義を確かめる（`git config user.name`・`git config user.email`）。公開のリポジトリでは、だれでも見られます。
-   変えるときは、このフォルダで `git config user.name "<名前>"`・`git config user.email "<アドレス>"`。
-3. `git add -A` → `git commit -m "変換ツールの試作 v0.1.0"` → `git remote add origin <リポジトリの URL>` → `git push -u origin main`
-4. リポジトリの Settings → Pages で、Source を「Deploy from a branch」、Branch を `main`・`/ (root)` にする。
-5. 数分後に `https://<ユーザー名>.github.io/<リポジトリ名>/` で開く。
